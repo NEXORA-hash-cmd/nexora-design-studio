@@ -1,0 +1,6 @@
+{
+  "name": "NEXORA Business Design Studio",
+  "description": "A connected workspace for turning business ideas into structured businesses. Standalone Windows Desktop Edition.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

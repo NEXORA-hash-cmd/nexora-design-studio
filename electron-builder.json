@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.nexora.desktop",
+  "productName": "NEXORA",
+  "copyright": "Copyright © 2026 NEXORA Studio. All rights reserved.",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64"
+        ]
+      }
+    ],
+    "icon": "public/icon.ico",
+    "executableName": "NEXORA"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": "always",
+    "createStartMenuShortcut": true,
+    "shortcutName": "NEXORA",
+    "uninstallDisplayName": "NEXORA",
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true,
+    "differentialPackage": false,
+    "artifactName": "NEXORA-Setup.exe"
+  }
+}

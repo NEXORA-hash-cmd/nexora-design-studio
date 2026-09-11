@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEXORA Business Design Studio</title>
+    <meta name="description" content="A connected workspace for turning business ideas into structured businesses. Standalone Windows Desktop Edition." />
+    <meta property="og:title" content="NEXORA Business Design Studio" />
+    <meta property="og:description" content="A connected workspace for turning business ideas into structured businesses. Standalone Windows Desktop Edition." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script>
+      (function() {
+        function ensureWritableFetch(target) {
+          try {
+            if (!target) return;
+            var current = target.fetch;
+            var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+            if (!desc || (!desc.set && !desc.writable)) {
+              Object.defineProperty(target, 'fetch', {
+                get: function() { return current; },
+                set: function(fn) { current = fn; },
+                configurable: true,
+                enumerable: true
+              });
+            }
+          } catch (e) {}
+        }
+        if (typeof window !== 'undefined') {
+          ensureWritableFetch(window);
+          if (typeof Window !== 'undefined' && Window.prototype) {
+            ensureWritableFetch(Window.prototype);
+          }
+          if (typeof globalThis !== 'undefined' && globalThis !== window) {
+            ensureWritableFetch(globalThis);
+          }
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
