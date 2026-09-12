@@ -26,7 +26,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, onTabChange }
     { id: 'market' as ActiveTab, label: 'Market & Competitors', icon: Users2 },
     { id: 'gtm' as ActiveTab, label: 'Go-To-Market', icon: Rocket },
     { id: 'pitch' as ActiveTab, label: 'Pitch Deck', icon: Presentation },
-    { id: 'themes' as ActiveTab, label: 'Design & Themes', icon: Palette },
+    { id: 'themes' as ActiveTab, label: 'Choose Your Theme', icon: Palette },
     { id: 'export' as ActiveTab, label: 'Export Center', icon: Download },
   ];
 

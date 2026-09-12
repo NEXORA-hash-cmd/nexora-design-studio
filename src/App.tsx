@@ -364,6 +364,7 @@ export default function App() {
         onSaveAs={handleSaveAs}
         onNewProject={() => setIsProjectsModalOpen(true)}
         onOpenProjects={() => setIsProjectsModalOpen(true)}
+        onDeleteProject={handleDeleteProject}
         onOpenThemeSelector={() => setActiveTab('themes')}
         onExportPptx={handleExportPptx}
         onExportPdf={handleExportPdf}
@@ -427,6 +428,8 @@ export default function App() {
         {activeTab === 'pitch' && (
           <PitchModule
             project={activeProject}
+            license={license}
+            onOpenLicense={() => setIsLicenseModalOpen(true)}
             onChange={handleUpdateActiveProject}
             onShowToast={showToast}
           />
@@ -437,6 +440,9 @@ export default function App() {
             project={activeProject}
             onThemeSelect={handleThemeSelect}
             onUpdateProject={handleUpdateActiveProject}
+            onNavigateTab={setActiveTab}
+            license={license}
+            onOpenLicense={() => setIsLicenseModalOpen(true)}
             onShowToast={showToast}
           />
         )}

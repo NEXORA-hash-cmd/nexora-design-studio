@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   FolderKanban, 
+  FolderOpen,
   Save, 
   Download, 
   Upload, 
@@ -19,6 +20,7 @@ import {
   Image as ImageIcon,
   Plus,
   Copy,
+  Trash2,
   Languages,
   Award
 } from 'lucide-react';
@@ -33,6 +35,7 @@ interface TitleBarProps {
   onSaveAs?: () => void;
   onNewProject?: () => void;
   onOpenProjects: () => void;
+  onDeleteProject?: (id: string) => void;
   onOpenThemeSelector: () => void;
   onExportPptx: () => void;
   onExportPdf: () => void;
@@ -55,6 +58,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
   onSaveAs,
   onNewProject,
   onOpenProjects,
+  onDeleteProject,
   onOpenThemeSelector,
   onExportPptx,
   onExportPdf,
@@ -70,6 +74,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
 }) => {
   const [exportOpen, setExportOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const exportDropdownRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
   const isElectron = Boolean(window.electronAPI?.isElectron);
@@ -170,13 +175,25 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           <button
             id="btn-titlebar-new"
             onClick={onNewProject}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-300 hover:text-white hover:bg-white/[0.06] transition-colors cursor-pointer hidden sm:flex"
+            className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer"
             title="Create a new business venture"
           >
             <Plus className="w-3.5 h-3.5 text-sky-400" />
-            <span className="hidden md:inline">New</span>
+            <span className="hidden sm:inline">New Project</span>
+            <span className="sm:hidden">New</span>
           </button>
         )}
+
+        {/* Open Project Button */}
+        <button
+          id="btn-titlebar-open"
+          onClick={onOpenProjects}
+          className="flex items-center gap-1 px-2.5 py-1 rounded text-xs text-slate-300 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-colors cursor-pointer hidden md:flex"
+          title="Open saved projects dashboard"
+        >
+          <FolderOpen className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Open Project</span>
+        </button>
 
         {/* Save Project Button */}
         <button
@@ -190,7 +207,7 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           title="Save project locally (Ctrl+S / Cmd+S)"
         >
           <Save className="w-3.5 h-3.5" />
-          <span>Save</span>
+          <span>Save Project</span>
         </button>
 
         {/* Save As Button */}
@@ -203,6 +220,19 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           >
             <Copy className="w-3.5 h-3.5" />
             <span>Save As</span>
+          </button>
+        )}
+
+        {/* Delete Project Button */}
+        {onDeleteProject && (
+          <button
+            id="btn-titlebar-delete"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs text-slate-400 hover:text-red-300 hover:bg-red-500/10 transition-colors cursor-pointer hidden xl:flex"
+            title="Delete active venture"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-400" />
+            <span>Delete Project</span>
           </button>
         )}
 
@@ -447,6 +477,54 @@ export const TitleBar: React.FC<TitleBarProps> = ({
           </div>
         )}
       </div>
+
+      {/* Delete Active Project Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div 
+          id="modal-delete-active-project-confirm" 
+          className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowDeleteConfirm(false)}
+        >
+          <div 
+            className="bg-[#101522] border border-red-500/30 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-150 space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 text-red-400">
+              <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Delete Project</h3>
+                <p className="text-xs text-slate-400">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to permanently delete venture <span className="font-bold text-white">"{project.name}"</span>? All business model blocks, financials, competitor analysis, and pitch slides will be removed from local storage.
+            </p>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                id="btn-cancel-delete-active"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] text-xs font-semibold text-slate-300 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                id="btn-confirm-delete-active"
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  onDeleteProject?.(project.id);
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-xs font-bold text-white transition-colors cursor-pointer shadow-lg shadow-red-600/20"
+              >
+                Delete Venture
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

@@ -23,6 +23,42 @@ export const NEXORA_THEMES: Record<ThemeId, ThemeConfig> = {
       headingWeight: 'font-bold',
       styleClass: 'theme-modern',
     },
+    structure: {
+      layout: {
+        coverStyle: 'split-hero',
+        contentLayout: 'card-grid',
+        cardRadius: 'rounded-xl',
+        cardBorderWidth: 1,
+        spacing: 'balanced',
+      },
+      shapes: {
+        accentGeometry: 'pill',
+        dividerStyle: 'gradient',
+        decorations: true,
+      },
+      coverPage: {
+        alignment: 'left',
+        badgeStyle: 'bg-sky-500/20 text-sky-300 border border-sky-500/30 rounded-full px-3 py-1',
+        showMetaGrid: true,
+        heroBannerHeight: 'h-auto',
+      },
+      contentPages: {
+        tableHeaderBg: '#0E1526',
+        gridGap: 'gap-4',
+        cardPadding: 'p-4',
+        sectionStyle: 'border-b border-sky-500/20 pb-2',
+      },
+      closingPage: {
+        ctaStyle: 'hero-card',
+        buttonColor: '#0284C7',
+        buttonTextColor: '#FFFFFF',
+        contactLayout: 'boxed-footer',
+      },
+      icons: {
+        strokeWidth: 2,
+        containerShape: 'rounded-lg',
+      },
+    },
     pptx: {
       bgColor: '070B14',
       cardColor: '0E1526',
@@ -54,6 +90,42 @@ export const NEXORA_THEMES: Record<ThemeId, ThemeConfig> = {
       bodyFont: 'font-sans',
       headingWeight: 'font-semibold',
       styleClass: 'theme-executive',
+    },
+    structure: {
+      layout: {
+        coverStyle: 'classic-centered',
+        contentLayout: 'structured-rows',
+        cardRadius: 'rounded-none',
+        cardBorderWidth: 1,
+        spacing: 'spacious',
+      },
+      shapes: {
+        accentGeometry: 'sharp',
+        dividerStyle: 'solid',
+        decorations: false,
+      },
+      coverPage: {
+        alignment: 'center',
+        badgeStyle: 'bg-slate-800 text-slate-200 border border-slate-600 px-3 py-1 uppercase tracking-wider',
+        showMetaGrid: true,
+        heroBannerHeight: 'h-auto',
+      },
+      contentPages: {
+        tableHeaderBg: '#111728',
+        gridGap: 'gap-6',
+        cardPadding: 'p-5',
+        sectionStyle: 'border-b border-slate-600/40 pb-3',
+      },
+      closingPage: {
+        ctaStyle: 'executive-memo',
+        buttonColor: '#3B82F6',
+        buttonTextColor: '#FFFFFF',
+        contactLayout: 'two-column',
+      },
+      icons: {
+        strokeWidth: 1.5,
+        containerShape: 'square',
+      },
     },
     pptx: {
       bgColor: '0B0F19',
@@ -87,6 +159,42 @@ export const NEXORA_THEMES: Record<ThemeId, ThemeConfig> = {
       headingWeight: 'font-light',
       styleClass: 'theme-minimal',
     },
+    structure: {
+      layout: {
+        coverStyle: 'minimal-editorial',
+        contentLayout: 'asymmetric-split',
+        cardRadius: 'rounded-lg',
+        cardBorderWidth: 1,
+        spacing: 'spacious',
+      },
+      shapes: {
+        accentGeometry: 'pill',
+        dividerStyle: 'hairline',
+        decorations: false,
+      },
+      coverPage: {
+        alignment: 'left',
+        badgeStyle: 'bg-zinc-800/40 text-zinc-400 border border-zinc-700/50 rounded px-2.5 py-0.5',
+        showMetaGrid: true,
+        heroBannerHeight: 'h-auto',
+      },
+      contentPages: {
+        tableHeaderBg: '#161920',
+        gridGap: 'gap-5',
+        cardPadding: 'p-5',
+        sectionStyle: 'border-b border-zinc-800 pb-2.5',
+      },
+      closingPage: {
+        ctaStyle: 'minimalist-center',
+        buttonColor: '#F4F4F5',
+        buttonTextColor: '#0F1115',
+        contactLayout: 'horizontal-bar',
+      },
+      icons: {
+        strokeWidth: 1.5,
+        containerShape: 'circle',
+      },
+    },
     pptx: {
       bgColor: '0F1115',
       cardColor: '161920',
@@ -118,6 +226,42 @@ export const NEXORA_THEMES: Record<ThemeId, ThemeConfig> = {
       bodyFont: 'font-sans',
       headingWeight: 'font-black',
       styleClass: 'theme-bold',
+    },
+    structure: {
+      layout: {
+        coverStyle: 'bold-impact',
+        contentLayout: 'high-contrast-blocks',
+        cardRadius: 'rounded-2xl',
+        cardBorderWidth: 2,
+        spacing: 'compact',
+      },
+      shapes: {
+        accentGeometry: 'sharp',
+        dividerStyle: 'solid',
+        decorations: true,
+      },
+      coverPage: {
+        alignment: 'left',
+        badgeStyle: 'bg-amber-500/30 text-amber-300 border-2 border-amber-500/50 rounded-lg px-3 py-1 font-black',
+        showMetaGrid: true,
+        heroBannerHeight: 'h-auto',
+      },
+      contentPages: {
+        tableHeaderBg: '#1E1712',
+        gridGap: 'gap-4',
+        cardPadding: 'p-4',
+        sectionStyle: 'border-b-2 border-amber-500/50 pb-2',
+      },
+      closingPage: {
+        ctaStyle: 'action-banner',
+        buttonColor: '#F59E0B',
+        buttonTextColor: '#120F0C',
+        contactLayout: 'boxed-footer',
+      },
+      icons: {
+        strokeWidth: 2.5,
+        containerShape: 'rounded-lg',
+      },
     },
     pptx: {
       bgColor: '120F0C',

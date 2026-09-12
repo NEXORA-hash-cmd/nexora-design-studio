@@ -11,30 +11,81 @@
     <meta name="twitter:card" content="summary_large_image" />
     <script>
       (function() {
-        function ensureWritableFetch(target) {
+        try {
+          if (typeof window === 'undefined') return;
+          var rawFetch = window.fetch;
+          if (typeof rawFetch !== 'function') return;
+          var boundFetch = function() {
+            return rawFetch.apply(window, arguments);
+          };
+
+          // Collect window, its entire prototype chain, and globalThis
+          var targets = [];
+          var p = window;
+          while (p) {
+            targets.push(p);
+            p = Object.getPrototypeOf(p);
+          }
+          if (typeof Window !== 'undefined' && Window.prototype && targets.indexOf(Window.prototype) === -1) {
+            targets.push(Window.prototype);
+          }
+          if (typeof globalThis !== 'undefined' && targets.indexOf(globalThis) === -1) {
+            targets.push(globalThis);
+          }
+
+          // Ensure every prototype with a getter-only fetch is made writable
+          for (var i = 0; i < targets.length; i++) {
+            var target = targets[i];
+            try {
+              var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
+              if (desc && (!desc.writable || !desc.set)) {
+                try {
+                  Object.defineProperty(target, 'fetch', {
+                    value: boundFetch,
+                    writable: true,
+                    configurable: true,
+                    enumerable: true
+                  });
+                } catch (eDefValue) {
+                  var cur = boundFetch;
+                  Object.defineProperty(target, 'fetch', {
+                    get: function() { return cur; },
+                    set: function(fn) { cur = fn; },
+                    configurable: true,
+                    enumerable: true
+                  });
+                }
+              }
+            } catch (eTarget) {}
+          }
+
+          // Explicitly define writable own property on window and globalThis so assignments never hit prototypes
           try {
-            if (!target) return;
-            var current = target.fetch;
-            var desc = Object.getOwnPropertyDescriptor(target, 'fetch');
-            if (!desc || (!desc.set && !desc.writable)) {
-              Object.defineProperty(target, 'fetch', {
-                get: function() { return current; },
-                set: function(fn) { current = fn; },
+            var winDesc = Object.getOwnPropertyDescriptor(window, 'fetch');
+            if (!winDesc || !winDesc.writable) {
+              Object.defineProperty(window, 'fetch', {
+                value: boundFetch,
+                writable: true,
                 configurable: true,
                 enumerable: true
               });
             }
-          } catch (e) {}
-        }
-        if (typeof window !== 'undefined') {
-          ensureWritableFetch(window);
-          if (typeof Window !== 'undefined' && Window.prototype) {
-            ensureWritableFetch(Window.prototype);
-          }
+          } catch (eWin) {}
+
           if (typeof globalThis !== 'undefined' && globalThis !== window) {
-            ensureWritableFetch(globalThis);
+            try {
+              var gtDesc = Object.getOwnPropertyDescriptor(globalThis, 'fetch');
+              if (!gtDesc || !gtDesc.writable) {
+                Object.defineProperty(globalThis, 'fetch', {
+                  value: boundFetch,
+                  writable: true,
+                  configurable: true,
+                  enumerable: true
+                });
+              }
+            } catch (eGt) {}
           }
-        }
+        } catch (eAll) {}
       })();
     </script>
   </head>

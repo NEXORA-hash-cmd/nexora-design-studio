@@ -12,7 +12,8 @@ import {
   Settings2, 
   ShieldCheck, 
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Eye
 } from 'lucide-react';
 import { NexoraProject } from '../types/project';
 import { 
@@ -24,6 +25,7 @@ import {
 } from '../utils/exporter';
 import { getTheme } from '../data/themes';
 import { LicenseInfo } from '../types/project';
+import { PresentationPreviewModal } from './PresentationPreviewModal';
 
 interface ExportCenterModuleProps {
   project: NexoraProject;
@@ -41,6 +43,7 @@ export const ExportCenterModule: React.FC<ExportCenterModuleProps> = ({
   const [activeExport, setActiveExport] = useState<string | null>(null);
   const [exportProgressStatus, setExportProgressStatus] = useState<string>('');
   const [lastExported, setLastExported] = useState<{ name: string; time: string } | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   const theme = getTheme(project.theme);
 
@@ -111,6 +114,20 @@ export const ExportCenterModule: React.FC<ExportCenterModuleProps> = ({
 
   return (
     <div id="module-export-center" className="p-6 max-w-6xl mx-auto space-y-8 animate-in fade-in duration-200">
+      {/* Presentation Preview Modal */}
+      <PresentationPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        themeId={project.theme}
+        project={project}
+        license={license}
+        onUseTemplate={() => {
+          setIsPreviewOpen(false);
+          onShowToast('info', 'Viewing presentation template in current project.');
+        }}
+        onUnlock={onOpenLicense}
+      />
+
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-[#111726] to-[#151D30] border border-white/[0.08] rounded-2xl p-6 shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 bottom-0 w-96 bg-gradient-to-l from-emerald-500/10 to-transparent pointer-events-none" />
@@ -240,22 +257,33 @@ export const ExportCenterModule: React.FC<ExportCenterModuleProps> = ({
               </div>
             </div>
 
-            <div className="pt-6">
+            <div className="pt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                id="btn-preview-deck-export-center"
+                type="button"
+                onClick={() => setIsPreviewOpen(true)}
+                className="py-3 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-slate-200 hover:text-white border border-white/[0.12] font-semibold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-[0.98]"
+                title="Open interactive 16:9 presentation preview"
+              >
+                <Eye className="w-4 h-4 text-purple-300 shrink-0" />
+                <span>👁 Preview Deck</span>
+              </button>
+
               <button
                 id="btn-trigger-export-pptx"
                 onClick={handleExportPptx}
                 disabled={activeExport !== null}
-                className="w-full py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20 cursor-pointer"
+                className="py-3 px-4 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-purple-600/20 cursor-pointer active:scale-[0.98]"
               >
                 {activeExport === 'pptx' ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Writing PowerPoint File...</span>
+                    <span>Writing PPTX...</span>
                   </>
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>Export PowerPoint (.pptx)</span>
+                    <span>Export PPTX</span>
                   </>
                 )}
               </button>
@@ -313,7 +341,7 @@ export const ExportCenterModule: React.FC<ExportCenterModuleProps> = ({
                 ) : (
                   <>
                     <Download className="w-4 h-4" />
-                    <span>Export Business Dossier (.pdf)</span>
+                    <span>Export PDF</span>
                   </>
                 )}
               </button>

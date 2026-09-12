@@ -1,6 +1,17 @@
 import pptxgen from 'pptxgenjs';
 import { NexoraProject } from '../types/project';
 import { getTheme } from '../data/themes';
+import {
+  SLIDE_W,
+  SLIDE_H,
+  LEFT_INCH,
+  RIGHT_INCH,
+  TOP_INCH,
+  BOTTOM_INCH,
+  SAFE_W_INCH,
+  SAFE_H_INCH,
+  computeTitleFontSize,
+} from './slideModel';
 
 // Sanitize filename for operating system safety
 export function sanitizeFilename(name: string): string {
@@ -12,12 +23,13 @@ export async function exportProjectToPptx(
   onProgress?: (status: string) => void
 ): Promise<{ success: boolean; message: string; filename: string }> {
   try {
-    onProgress?.('Initializing presentation engine...');
+    onProgress?.('Initializing 16:9 widescreen presentation engine...');
     const pres = new pptxgen();
-    pres.layout = 'LAYOUT_16x9';
+    // Use correct standard widescreen layout (13.333" x 7.5")
+    pres.layout = 'LAYOUT_WIDE';
     pres.author = 'NEXORA Business Design Studio';
     pres.company = project.name;
-    pres.title = `${project.name} - Business Portfolio`;
+    pres.title = `${project.name} - NEXORA Business Design Studio`;
 
     const theme = getTheme(project.theme);
     const pptxTheme = theme.pptx;
@@ -29,16 +41,18 @@ export async function exportProjectToPptx(
     const accent = pptxTheme.accentHex;
     const text = pptxTheme.textHex;
     const muted = pptxTheme.mutedHex;
-    const font = pptxTheme.fontFace;
+    const font = pptxTheme.fontFace || 'Arial';
 
+    // Financial data extraction with safe fallbacks
     const fin = project.financials;
-    const price = fin.pricingPerUnit || 0;
-    const cogs = fin.cogsPerUnit || 0;
+    const price = fin.pricingPerUnit || (fin as any).targetSellingPrice || 100;
+    const cogs = fin.cogsPerUnit || 20;
     const margin = price > 0 ? Math.round(((price - cogs) / price) * 100) : 0;
-    const fixedBurn = (fin.monthlyFixedCosts.payroll || 0) +
-                      (fin.monthlyFixedCosts.softwareHosting || 0) +
-                      (fin.monthlyFixedCosts.marketingBudget || 0) +
-                      (fin.monthlyFixedCosts.officeMisc || 0);
+    const fixedBurn =
+      (fin.monthlyFixedCosts?.payroll || 0) +
+      (fin.monthlyFixedCosts?.softwareHosting || 0) +
+      (fin.monthlyFixedCosts?.marketingBudget || 0) +
+      (fin.monthlyFixedCosts?.officeMisc || 0);
 
     // ==========================================
     // SLIDE 1: COVER SLIDE
@@ -47,75 +61,119 @@ export async function exportProjectToPptx(
     const slide1 = pres.addSlide();
     slide1.background = { color: bg };
 
-    // Brand accent bar top
+    // Brand accent bar top (edge-to-edge)
     slide1.addShape(pres.ShapeType.rect, {
       x: 0,
       y: 0,
-      w: 13.33,
-      h: 0.15,
+      w: SLIDE_W,
+      h: 0.12,
       fill: { color: primary },
       line: { color: primary },
     });
 
     // Theme badge
     slide1.addText(`NEXORA COMMERCIAL PORTFOLIO • ${theme.name.toUpperCase()}`, {
-      x: 1.0,
-      y: 1.2,
-      w: 11.33,
-      h: 0.4,
+      x: LEFT_INCH,
+      y: 0.75,
+      w: SAFE_W_INCH,
+      h: 0.35,
       fontSize: 11,
       bold: true,
       color: accent,
       fontFace: font,
+      wrap: true,
+      fit: 'shrink',
     });
 
-    // Project Name
+    // Project Name (Adaptive font sizing and shrink-to-fit to strictly prevent overflow)
+    const titleSize = computeTitleFontSize(project.name, 40);
     slide1.addText(project.name, {
-      x: 1.0,
-      y: 1.8,
-      w: 11.33,
-      h: 1.4,
-      fontSize: 44,
+      x: LEFT_INCH,
+      y: 1.25,
+      w: SAFE_W_INCH,
+      h: 1.30,
+      fontSize: titleSize,
       bold: true,
       color: text,
       fontFace: font,
+      wrap: true,
+      fit: 'shrink',
     });
 
     // Tagline / Mission
-    slide1.addText(project.tagline || 'Business Architecture & Strategic Masterplan', {
-      x: 1.0,
-      y: 3.3,
-      w: 11.33,
-      h: 1.0,
+    slide1.addText(project.tagline || 'Business Architecture, Financial Blueprint & Strategic Masterplan', {
+      x: LEFT_INCH,
+      y: 2.70,
+      w: SAFE_W_INCH,
+      h: 0.90,
       fontSize: 18,
       color: muted,
       fontFace: font,
+      wrap: true,
+      fit: 'shrink',
     });
 
-    // Decorative Card Bottom Info
+    // Decorative Metadata Card
     slide1.addShape(pres.ShapeType.roundRect, {
-      x: 1.0,
-      y: 5.2,
-      w: 11.33,
-      h: 1.4,
+      x: LEFT_INCH,
+      y: 4.80,
+      w: SAFE_W_INCH,
+      h: 1.50,
       fill: { color: cardBg },
       line: { color: primary, width: 1 },
       rectRadius: 0.1,
     });
 
-    slide1.addText(
-      `INDUSTRY: ${project.industry || 'Technology'}    |    STAGE: ${project.stage}    |    DATE: ${new Date().toLocaleDateString()}    |    CURRENCY: ${fin.currency || 'USD'} (${fin.currencySymbol || '$'})`,
-      {
-        x: 1.3,
-        y: 5.6,
-        w: 10.7,
-        h: 0.6,
-        fontSize: 13,
+    // 4 Column Metadata Info inside card
+    const metaColW = 2.90;
+    const metaY = 4.95;
+    const metaItems = [
+      { label: 'INDUSTRY SECTOR', val: project.industry || 'Technology' },
+      { label: 'COMMERCIAL STAGE', val: project.stage },
+      { label: 'EFFECTIVE DATE', val: new Date().toLocaleDateString() },
+      { label: 'FINANCIAL STANDARD', val: `${fin.currency || 'USD'} (${fin.currencySymbol || '$'})` },
+    ];
+
+    metaItems.forEach((m, idx) => {
+      const xPos = LEFT_INCH + 0.20 + idx * (metaColW + 0.20);
+      slide1.addText(m.label, {
+        x: xPos,
+        y: metaY,
+        w: metaColW,
+        h: 0.30,
+        fontSize: 10,
         bold: true,
-        color: text,
+        color: muted,
         fontFace: font,
-      }
-    );
+        align: 'center',
+        fit: 'shrink',
+      });
+      slide1.addText(m.val, {
+        x: xPos,
+        y: metaY + 0.35,
+        w: metaColW,
+        h: 0.55,
+        fontSize: 14,
+        bold: true,
+        color: idx === 3 ? accent : text,
+        fontFace: font,
+        align: 'center',
+        wrap: true,
+        fit: 'shrink',
+      });
+    });
+
+    // Attribution Footer
+    slide1.addText('Powered by NEXORA Business Design Studio • Professional Edition', {
+      x: LEFT_INCH,
+      y: 6.75,
+      w: SAFE_W_INCH,
+      h: 0.35,
+      fontSize: 10,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
+    });
 
     // ==========================================
     // SLIDE 2: EXECUTIVE SUMMARY & THESIS
@@ -125,95 +183,119 @@ export async function exportProjectToPptx(
     slide2.background = { color: bg };
 
     slide2.addText('01 / EXECUTIVE SUMMARY', {
-      x: 1.0,
-      y: 0.7,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide2.addText('Strategic Problem & Solution Thesis', {
-      x: 1.0,
-      y: 1.1,
-      w: 11.33,
-      h: 0.6,
-      fontSize: 26,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
+      fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
-    // Problem Card
+    // Problem Card (Left Half)
+    const cardW = 6.00;
+    const cardH = 5.15;
+    const cardY = 1.45;
+
     slide2.addShape(pres.ShapeType.roundRect, {
-      x: 1.0,
-      y: 2.0,
-      w: 5.4,
-      h: 4.8,
+      x: LEFT_INCH,
+      y: cardY,
+      w: cardW,
+      h: cardH,
       fill: { color: cardBg },
       line: { color: 'DC2626', width: 1 },
       rectRadius: 0.1,
     });
     slide2.addText('THE CORE PROBLEM', {
-      x: 1.3,
-      y: 2.3,
-      w: 4.8,
-      h: 0.4,
-      fontSize: 14,
+      x: LEFT_INCH + 0.25,
+      y: cardY + 0.20,
+      w: cardW - 0.50,
+      h: 0.35,
+      fontSize: 13,
       bold: true,
       color: 'F87171',
       fontFace: font,
+      fit: 'shrink',
     });
     slide2.addText(
       project.pitch.problemSummary ||
-      'Market participants currently suffer from fragmented operational workflows, prohibitive manual friction, and inefficient capital allocation.',
+      'Market participants currently suffer from fragmented operational workflows, prohibitive manual friction, and inefficient capital allocation that prevents sustainable scaling.',
       {
-        x: 1.3,
-        y: 2.8,
-        w: 4.8,
-        h: 3.6,
-        fontSize: 13,
+        x: LEFT_INCH + 0.25,
+        y: cardY + 0.65,
+        w: cardW - 0.50,
+        h: cardH - 0.90,
+        fontSize: 12.5,
         color: text,
         fontFace: font,
-        lineSpacing: 22,
+        lineSpacing: 20,
+        wrap: true,
+        fit: 'shrink',
       }
     );
 
-    // Solution Card
+    // Solution Card (Right Half)
+    const solX = LEFT_INCH + cardW + 0.433; // 0.45 + 6.00 + 0.433 = 6.883 in (6.883 + 6.0 = 12.883 = SLIDE_W - 0.45)
     slide2.addShape(pres.ShapeType.roundRect, {
-      x: 6.9,
-      y: 2.0,
-      w: 5.4,
-      h: 4.8,
+      x: solX,
+      y: cardY,
+      w: cardW,
+      h: cardH,
       fill: { color: cardBg },
       line: { color: primary, width: 1 },
       rectRadius: 0.1,
     });
     slide2.addText('THE VALUE-DRIVEN SOLUTION', {
-      x: 7.2,
-      y: 2.3,
-      w: 4.8,
-      h: 0.4,
-      fontSize: 14,
+      x: solX + 0.25,
+      y: cardY + 0.20,
+      w: cardW - 0.50,
+      h: 0.35,
+      fontSize: 13,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide2.addText(
       project.pitch.solutionSummary ||
-      `${project.name} delivers an integrated, structured platform that streamlines delivery, drives immediate cost savings, and ensures compounding returns.`,
+      `${project.name} delivers an integrated, structured platform that streamlines delivery, drives immediate cost savings, and ensures compounding commercial returns.`,
       {
-        x: 7.2,
-        y: 2.8,
-        w: 4.8,
-        h: 3.6,
-        fontSize: 13,
+        x: solX + 0.25,
+        y: cardY + 0.65,
+        w: cardW - 0.50,
+        h: cardH - 0.90,
+        fontSize: 12.5,
         color: text,
         fontFace: font,
-        lineSpacing: 22,
+        lineSpacing: 20,
+        wrap: true,
+        fit: 'shrink',
       }
     );
+
+    slide2.addText('Slide 2 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
+    });
 
     // ==========================================
     // SLIDE 3: BUSINESS MODEL CANVAS
@@ -223,70 +305,89 @@ export async function exportProjectToPptx(
     slide3.background = { color: bg };
 
     slide3.addText('02 / BUSINESS MODEL CANVAS', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide3.addText('Comprehensive 9-Block Strategic Blueprint', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
-    const blocks = [
-      { title: 'Value Propositions', items: project.canvas.valuePropositions.items, x: 1.0, y: 1.6, w: 3.6, h: 2.5 },
-      { title: 'Customer Segments', items: project.canvas.customerSegments.items, x: 4.8, y: 1.6, w: 3.6, h: 2.5 },
-      { title: 'Revenue Streams', items: project.canvas.revenueStreams.items, x: 8.6, y: 1.6, w: 3.7, h: 2.5 },
-      { title: 'Key Activities', items: project.canvas.keyActivities.items, x: 1.0, y: 4.3, w: 3.6, h: 2.5 },
-      { title: 'Key Resources & Partners', items: [...project.canvas.keyResources.items, ...project.canvas.keyPartners.items], x: 4.8, y: 4.3, w: 3.6, h: 2.5 },
-      { title: 'Cost Structure', items: project.canvas.costStructure.items, x: 8.6, y: 4.3, w: 3.7, h: 2.5 },
+    const bmcColW = 3.96;
+    const bmcRowH = 2.50;
+    const bmcBlocks = [
+      { title: 'Value Propositions', items: project.canvas.valuePropositions.items, x: LEFT_INCH, y: 1.45 },
+      { title: 'Customer Segments', items: project.canvas.customerSegments.items, x: LEFT_INCH + bmcColW + 0.27, y: 1.45 },
+      { title: 'Revenue Streams', items: project.canvas.revenueStreams.items, x: LEFT_INCH + (bmcColW + 0.27) * 2, y: 1.45 },
+      { title: 'Key Activities', items: project.canvas.keyActivities.items, x: LEFT_INCH, y: 4.15 },
+      { title: 'Key Resources & Partners', items: [...project.canvas.keyResources.items, ...project.canvas.keyPartners.items], x: LEFT_INCH + bmcColW + 0.27, y: 4.15 },
+      { title: 'Cost Structure', items: project.canvas.costStructure.items, x: LEFT_INCH + (bmcColW + 0.27) * 2, y: 4.15 },
     ];
 
-    blocks.forEach((b) => {
+    bmcBlocks.forEach((b) => {
       slide3.addShape(pres.ShapeType.roundRect, {
         x: b.x,
         y: b.y,
-        w: b.w,
-        h: b.h,
+        w: bmcColW,
+        h: bmcRowH,
         fill: { color: cardBg },
         line: { color: primary, width: 0.75 },
         rectRadius: 0.08,
       });
       slide3.addText(b.title.toUpperCase(), {
-        x: b.x + 0.2,
+        x: b.x + 0.20,
         y: b.y + 0.15,
-        w: b.w - 0.4,
-        h: 0.3,
+        w: bmcColW - 0.40,
+        h: 0.30,
         fontSize: 11,
         bold: true,
         color: accent,
         fontFace: font,
+        fit: 'shrink',
       });
 
-      const bulletTexts = b.items.length > 0 
-        ? b.items.slice(0, 3).map((it) => `• ${it.text}`).join('\n')
-        : '• Architecture definition in progress';
+      const bulletTexts =
+        b.items.length > 0
+          ? b.items.slice(0, 4).map((it) => `• ${it.text}`).join('\n')
+          : '• Architecture definition in progress';
 
       slide3.addText(bulletTexts, {
-        x: b.x + 0.2,
-        y: b.y + 0.5,
-        w: b.w - 0.4,
-        h: b.h - 0.6,
-        fontSize: 10.5,
+        x: b.x + 0.20,
+        y: b.y + 0.50,
+        w: bmcColW - 0.40,
+        h: bmcRowH - 0.65,
+        fontSize: 10,
         color: text,
         fontFace: font,
-        lineSpacing: 18,
+        lineSpacing: 16,
+        wrap: true,
+        fit: 'shrink',
       });
+    });
+
+    slide3.addText('Slide 3 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
     });
 
     // ==========================================
@@ -297,94 +398,102 @@ export async function exportProjectToPptx(
     slide4.background = { color: bg };
 
     slide4.addText('03 / MARKET SIZING & CUSTOMER PERSONA', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide4.addText('Addressable Market & Ideal Customer Profile', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
     // TAM / SAM / SOM Metrics
+    const marketColW = 3.96;
     const markets = [
-      { label: 'TAM (Total Addressable)', val: `$${project.market.tamValue}M`, desc: project.market.tamDescription || 'Total global market scope' },
-      { label: 'SAM (Serviceable Addressable)', val: `$${project.market.samValue}M`, desc: project.market.samDescription || 'Accessible target market' },
-      { label: 'SOM (Serviceable Obtainable)', val: `$${project.market.somValue}M`, desc: project.market.somDescription || '3-year target capture' },
+      { label: 'TAM (TOTAL ADDRESSABLE)', val: `$${project.market.tamValue}M`, desc: project.market.tamDescription || 'Total global market scope' },
+      { label: 'SAM (SERVICEABLE ADDRESSABLE)', val: `$${project.market.samValue}M`, desc: project.market.samDescription || 'Accessible target market' },
+      { label: 'SOM (SERVICEABLE OBTAINABLE)', val: `$${project.market.somValue}M`, desc: project.market.somDescription || '3-year target capture' },
     ];
 
     markets.forEach((m, idx) => {
-      const xPos = 1.0 + idx * 3.9;
+      const xPos = LEFT_INCH + idx * (marketColW + 0.27);
       slide4.addShape(pres.ShapeType.roundRect, {
         x: xPos,
-        y: 1.7,
-        w: 3.6,
-        h: 2.1,
+        y: 1.45,
+        w: marketColW,
+        h: 2.00,
         fill: { color: cardBg },
         line: { color: primary, width: 1 },
         rectRadius: 0.1,
       });
-      slide4.addText(m.label.toUpperCase(), {
-        x: xPos + 0.2,
-        y: 1.9,
-        w: 3.2,
-        h: 0.3,
-        fontSize: 10,
+      slide4.addText(m.label, {
+        x: xPos + 0.20,
+        y: 1.60,
+        w: marketColW - 0.40,
+        h: 0.25,
+        fontSize: 9.5,
         bold: true,
         color: muted,
         fontFace: font,
+        fit: 'shrink',
       });
       slide4.addText(m.val, {
-        x: xPos + 0.2,
-        y: 2.2,
-        w: 3.2,
-        h: 0.7,
+        x: xPos + 0.20,
+        y: 1.90,
+        w: marketColW - 0.40,
+        h: 0.65,
         fontSize: 28,
         bold: true,
         color: accent,
         fontFace: font,
+        fit: 'shrink',
       });
       slide4.addText(m.desc, {
-        x: xPos + 0.2,
-        y: 2.9,
-        w: 3.2,
-        h: 0.7,
+        x: xPos + 0.20,
+        y: 2.60,
+        w: marketColW - 0.40,
+        h: 0.75,
         fontSize: 10,
         color: text,
         fontFace: font,
+        wrap: true,
+        fit: 'shrink',
       });
     });
 
     // Target ICP Card
     slide4.addShape(pres.ShapeType.roundRect, {
-      x: 1.0,
-      y: 4.1,
-      w: 11.33,
-      h: 2.7,
+      x: LEFT_INCH,
+      y: 3.70,
+      w: SAFE_W_INCH,
+      h: 2.95,
       fill: { color: cardBg },
       line: { color: primary, width: 0.75 },
       rectRadius: 0.1,
     });
     slide4.addText('IDEAL CUSTOMER PROFILE (ICP)', {
-      x: 1.3,
-      y: 4.3,
-      w: 10.7,
-      h: 0.3,
+      x: LEFT_INCH + 0.25,
+      y: 3.85,
+      w: SAFE_W_INCH - 0.50,
+      h: 0.30,
       fontSize: 12,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
 
     const icp = project.market.icp;
@@ -393,18 +502,31 @@ export async function exportProjectToPptx(
       `• Industry / Sector: ${icp.industry || project.industry}\n` +
       `• Primary Pain Point: ${icp.primaryPainPoint || 'Operational inefficiencies and high integration friction'}\n` +
       `• Buying Trigger: ${icp.buyingTrigger || 'Need for commercial scalability and cost reduction'}\n` +
-      `• Success Metric: ${icp.successMetric || 'Measurable ROI and positive margin expansion'}`,
+      `• Success Metric: ${icp.successMetric || 'Measurable ROI within 90 days and positive margin expansion'}`,
       {
-        x: 1.3,
-        y: 4.7,
-        w: 10.7,
-        h: 1.9,
-        fontSize: 12,
+        x: LEFT_INCH + 0.25,
+        y: 4.25,
+        w: SAFE_W_INCH - 0.50,
+        h: 2.25,
+        fontSize: 11.5,
         color: text,
         fontFace: font,
-        lineSpacing: 22,
+        lineSpacing: 20,
+        wrap: true,
+        fit: 'shrink',
       }
     );
+
+    slide4.addText('Slide 4 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
+    });
 
     // ==========================================
     // SLIDE 5: COMPETITIVE MATRIX
@@ -414,24 +536,26 @@ export async function exportProjectToPptx(
     slide5.background = { color: bg };
 
     slide5.addText('04 / COMPETITIVE LANDSCAPE', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide5.addText('Market Positioning & NEXORA Differentiator', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
     const compRows: pptxgen.TableRow[] = [
@@ -444,7 +568,7 @@ export async function exportProjectToPptx(
       ],
     ];
 
-    project.market.competitors.forEach((c) => {
+    project.market.competitors.slice(0, 5).forEach((c) => {
       compRows.push([
         { text: c.name, options: { bold: true, color: text } },
         { text: c.pricing || 'Custom quote', options: { color: text } },
@@ -465,14 +589,26 @@ export async function exportProjectToPptx(
     }
 
     slide5.addTable(compRows, {
-      x: 1.0,
-      y: 1.8,
-      w: 11.33,
+      x: LEFT_INCH,
+      y: 1.50,
+      w: SAFE_W_INCH,
+      colW: [2.2, 2.0, 2.6, 2.6, 3.033],
       fill: { color: cardBg },
       color: text,
-      fontSize: 10.5,
+      fontSize: 10,
       fontFace: font,
       border: { pt: 0.5, color: '334155' },
+    });
+
+    slide5.addText('Slide 5 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
     });
 
     // ==========================================
@@ -483,72 +619,79 @@ export async function exportProjectToPptx(
     slide6.background = { color: bg };
 
     slide6.addText('05 / FINANCIAL MODEL & UNIT ECONOMICS', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide6.addText('Core Margins, Cash Flow & Unit Economics', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
     const finCards = [
-      { label: 'Unit Selling Price', val: `${fin.currencySymbol}${price}`, sub: 'Standard commercial tier' },
-      { label: 'COGS per Unit', val: `${fin.currencySymbol}${cogs}`, sub: 'Direct delivery costs' },
-      { label: 'Gross Margin', val: `${margin}%`, sub: 'Unit profitability' },
-      { label: 'Monthly Fixed Burn', val: `${fin.currencySymbol}${fixedBurn.toLocaleString()}`, sub: 'Payroll & overhead' },
+      { label: 'UNIT SELLING PRICE', val: `${fin.currencySymbol}${price}`, sub: 'Standard commercial tier' },
+      { label: 'COGS PER UNIT', val: `${fin.currencySymbol}${cogs}`, sub: 'Direct delivery costs' },
+      { label: 'GROSS MARGIN', val: `${margin}%`, sub: 'Unit profitability' },
+      { label: 'MONTHLY FIXED BURN', val: `${fin.currencySymbol}${fixedBurn.toLocaleString()}`, sub: 'Payroll & overhead' },
     ];
 
+    const finCardW = 2.93;
     finCards.forEach((c, idx) => {
-      const xPos = 1.0 + idx * 2.95;
+      const xPos = LEFT_INCH + idx * (finCardW + 0.23);
       slide6.addShape(pres.ShapeType.roundRect, {
         x: xPos,
-        y: 1.7,
-        w: 2.7,
-        h: 2.0,
+        y: 1.45,
+        w: finCardW,
+        h: 1.95,
         fill: { color: cardBg },
         line: { color: primary, width: 1 },
         rectRadius: 0.1,
       });
-      slide6.addText(c.label.toUpperCase(), {
+      slide6.addText(c.label, {
         x: xPos + 0.15,
-        y: 1.9,
-        w: 2.4,
-        h: 0.3,
-        fontSize: 9.5,
+        y: 1.60,
+        w: finCardW - 0.30,
+        h: 0.25,
+        fontSize: 9,
         bold: true,
         color: muted,
         fontFace: font,
+        fit: 'shrink',
       });
       slide6.addText(c.val, {
         x: xPos + 0.15,
-        y: 2.2,
-        w: 2.4,
-        h: 0.6,
+        y: 1.85,
+        w: finCardW - 0.30,
+        h: 0.65,
         fontSize: 24,
         bold: true,
         color: accent,
         fontFace: font,
+        fit: 'shrink',
       });
       slide6.addText(c.sub, {
         x: xPos + 0.15,
-        y: 2.9,
-        w: 2.4,
-        h: 0.6,
-        fontSize: 10,
+        y: 2.55,
+        w: finCardW - 0.30,
+        h: 0.65,
+        fontSize: 9.5,
         color: text,
         fontFace: font,
+        wrap: true,
+        fit: 'shrink',
       });
     });
 
@@ -556,23 +699,24 @@ export async function exportProjectToPptx(
     const grossPerUnit = price - cogs;
     const breakevenUnits = grossPerUnit > 0 ? Math.ceil(fixedBurn / grossPerUnit) : 0;
     slide6.addShape(pres.ShapeType.roundRect, {
-      x: 1.0,
-      y: 4.1,
-      w: 11.33,
-      h: 2.6,
+      x: LEFT_INCH,
+      y: 3.65,
+      w: SAFE_W_INCH,
+      h: 3.00,
       fill: { color: cardBg },
       line: { color: primary, width: 0.75 },
       rectRadius: 0.1,
     });
     slide6.addText('BREAK-EVEN CAPACITY & CAPITAL POSITION', {
-      x: 1.3,
-      y: 4.3,
-      w: 10.7,
-      h: 0.3,
+      x: LEFT_INCH + 0.25,
+      y: 3.80,
+      w: SAFE_W_INCH - 0.50,
+      h: 0.30,
       fontSize: 12,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide6.addText(
       `• Required Break-Even Volume: ${breakevenUnits} units/month (${fin.currencySymbol}${(breakevenUnits * price).toLocaleString()}/month in revenue)\n` +
@@ -580,16 +724,29 @@ export async function exportProjectToPptx(
       `• Starting Capital Reserve: ${fin.currencySymbol}${(fin.startingCapital || 0).toLocaleString()}\n` +
       `• Projected Monthly Growth Rate: ${fin.projectedMonthlyGrowthRate || 10}% compound growth`,
       {
-        x: 1.3,
-        y: 4.7,
-        w: 10.7,
-        h: 1.8,
-        fontSize: 12,
+        x: LEFT_INCH + 0.25,
+        y: 4.20,
+        w: SAFE_W_INCH - 0.50,
+        h: 2.30,
+        fontSize: 11.5,
         color: text,
         fontFace: font,
-        lineSpacing: 22,
+        lineSpacing: 20,
+        wrap: true,
+        fit: 'shrink',
       }
     );
+
+    slide6.addText('Slide 6 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
+    });
 
     // ==========================================
     // SLIDE 7: GO-TO-MARKET CHANNELS
@@ -599,24 +756,26 @@ export async function exportProjectToPptx(
     slide7.background = { color: bg };
 
     slide7.addText('06 / GO-TO-MARKET STRATEGY', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide7.addText('Customer Acquisition Engine & Channel Mix', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
     const channelRows: pptxgen.TableRow[] = [
@@ -629,7 +788,7 @@ export async function exportProjectToPptx(
       ],
     ];
 
-    project.gtm.channels.forEach((ch) => {
+    project.gtm.channels.slice(0, 5).forEach((ch) => {
       channelRows.push([
         { text: ch.name, options: { bold: true, color: text } },
         { text: ch.type, options: { color: text } },
@@ -640,14 +799,26 @@ export async function exportProjectToPptx(
     });
 
     slide7.addTable(channelRows, {
-      x: 1.0,
-      y: 1.8,
-      w: 11.33,
+      x: LEFT_INCH,
+      y: 1.50,
+      w: SAFE_W_INCH,
+      colW: [2.8, 2.2, 2.2, 2.4, 2.833],
       fill: { color: cardBg },
       color: text,
-      fontSize: 11,
+      fontSize: 10.5,
       fontFace: font,
       border: { pt: 0.5, color: '334155' },
+    });
+
+    slide7.addText('Slide 7 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
     });
 
     // ==========================================
@@ -658,69 +829,87 @@ export async function exportProjectToPptx(
     slide8.background = { color: bg };
 
     slide8.addText('07 / STRATEGIC ROADMAP', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide8.addText('Execution Timeline & Milestones', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
-    project.gtm.milestones.forEach((m, idx) => {
-      const yPos = 1.8 + idx * 1.25;
+    const milestoneH = 1.05;
+    const milestoneGap = 0.25;
+    project.gtm.milestones.slice(0, 4).forEach((m, idx) => {
+      const yPos = 1.45 + idx * (milestoneH + milestoneGap);
       slide8.addShape(pres.ShapeType.roundRect, {
-        x: 1.0,
+        x: LEFT_INCH,
         y: yPos,
-        w: 11.33,
-        h: 1.05,
+        w: SAFE_W_INCH,
+        h: milestoneH,
         fill: { color: cardBg },
         line: { color: m.completed ? '10B981' : primary, width: 1 },
         rectRadius: 0.08,
       });
 
       slide8.addText(m.phase.toUpperCase(), {
-        x: 1.3,
-        y: yPos + 0.15,
+        x: LEFT_INCH + 0.25,
+        y: yPos + 0.12,
         w: 3.5,
-        h: 0.3,
+        h: 0.25,
         fontSize: 10,
         bold: true,
         color: m.completed ? '34D399' : accent,
         fontFace: font,
+        fit: 'shrink',
       });
       slide8.addText(m.title, {
-        x: 1.3,
-        y: yPos + 0.45,
-        w: 7.5,
+        x: LEFT_INCH + 0.25,
+        y: yPos + 0.42,
+        w: 7.2,
         h: 0.45,
         fontSize: 12,
         bold: true,
         color: text,
         fontFace: font,
+        fit: 'shrink',
       });
       slide8.addText(`Target: ${m.targetDate}  •  ${m.completed ? 'COMPLETED' : 'IN PROGRESS'}`, {
-        x: 9.0,
+        x: LEFT_INCH + 7.5,
         y: yPos + 0.35,
-        w: 3.1,
-        h: 0.4,
+        w: 4.68,
+        h: 0.35,
         fontSize: 11,
         align: 'right',
         bold: true,
         color: m.completed ? '34D399' : muted,
         fontFace: font,
+        fit: 'shrink',
       });
+    });
+
+    slide8.addText('Slide 8 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
+      fontFace: font,
+      fit: 'shrink',
     });
 
     // ==========================================
@@ -731,99 +920,127 @@ export async function exportProjectToPptx(
     slide9.background = { color: bg };
 
     slide9.addText('08 / CAPITAL ALLOCATION & THE ASK', {
-      x: 1.0,
-      y: 0.6,
-      w: 11.33,
-      h: 0.3,
+      x: LEFT_INCH,
+      y: 0.40,
+      w: SAFE_W_INCH,
+      h: 0.25,
       fontSize: 10,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide9.addText('Funding Requirements & Deployment Plan', {
-      x: 1.0,
-      y: 0.9,
-      w: 11.33,
-      h: 0.5,
+      x: LEFT_INCH,
+      y: 0.70,
+      w: SAFE_W_INCH,
+      h: 0.50,
       fontSize: 24,
       bold: true,
       color: text,
       fontFace: font,
+      fit: 'shrink',
     });
 
     // Big Capital Ask Box
+    const askW = 5.20;
+    const askH = 5.15;
     slide9.addShape(pres.ShapeType.roundRect, {
-      x: 1.0,
-      y: 1.8,
-      w: 4.5,
-      h: 4.8,
+      x: LEFT_INCH,
+      y: 1.45,
+      w: askW,
+      h: askH,
       fill: { color: cardBg },
       line: { color: accent, width: 1.5 },
       rectRadius: 0.1,
     });
-    slide9.addText('COMMERCIAL ASK', {
-      x: 1.3,
-      y: 2.1,
-      w: 3.9,
-      h: 0.3,
+    slide9.addText('COMMERCIAL TARGET CAPITAL', {
+      x: LEFT_INCH + 0.25,
+      y: 1.65,
+      w: askW - 0.50,
+      h: 0.30,
       fontSize: 11,
       bold: true,
       color: muted,
       fontFace: font,
+      fit: 'shrink',
     });
     slide9.addText(`${fin.currencySymbol}${project.pitch.capitalAsk.toLocaleString()}`, {
-      x: 1.3,
-      y: 2.6,
-      w: 3.9,
-      h: 1.2,
-      fontSize: 40,
+      x: LEFT_INCH + 0.25,
+      y: 2.10,
+      w: askW - 0.50,
+      h: 1.10,
+      fontSize: 38,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
     slide9.addText(
       `18-Month Target Milestone:\n${project.pitch.financialMilestone12mo || 'Scale to $1M+ run rate with sustainable cash profitability'}`,
       {
-        x: 1.3,
-        y: 4.2,
-        w: 3.9,
-        h: 2.0,
-        fontSize: 13,
+        x: LEFT_INCH + 0.25,
+        y: 3.50,
+        w: askW - 0.50,
+        h: 2.80,
+        fontSize: 12.5,
         color: text,
         fontFace: font,
-        lineSpacing: 22,
+        lineSpacing: 20,
+        wrap: true,
+        fit: 'shrink',
       }
     );
 
     // Fund Allocation Box
+    const allocX = LEFT_INCH + askW + 0.30;
+    const allocW = SAFE_W_INCH - askW - 0.30; // 12.433 - 5.20 - 0.30 = 6.933 in
     slide9.addShape(pres.ShapeType.roundRect, {
-      x: 6.0,
-      y: 1.8,
-      w: 6.33,
-      h: 4.8,
+      x: allocX,
+      y: 1.45,
+      w: allocW,
+      h: askH,
       fill: { color: cardBg },
       line: { color: primary, width: 1 },
       rectRadius: 0.1,
     });
     slide9.addText('USE OF FUNDS', {
-      x: 6.3,
-      y: 2.1,
-      w: 5.7,
-      h: 0.3,
+      x: allocX + 0.25,
+      y: 1.65,
+      w: allocW - 0.50,
+      h: 0.30,
       fontSize: 11,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
-    slide9.addText(project.pitch.fundAllocation || '60% Product Engineering, 25% Go-To-Market & Acquisition, 15% Reserves', {
-      x: 6.3,
-      y: 2.7,
-      w: 5.7,
-      h: 3.5,
-      fontSize: 15,
-      color: text,
+    slide9.addText(
+      project.pitch.fundAllocation ||
+      '• 60% Product Engineering & Scalable Infrastructure\n• 25% Go-To-Market, Customer Acquisition & Channel Partnerships\n• 15% Operational Working Capital & Governance Reserves',
+      {
+        x: allocX + 0.25,
+        y: 2.20,
+        w: allocW - 0.50,
+        h: 4.10,
+        fontSize: 14,
+        color: text,
+        fontFace: font,
+        lineSpacing: 24,
+        wrap: true,
+        fit: 'shrink',
+      }
+    );
+
+    slide9.addText('Slide 9 of 10  •  NEXORA Business Design Studio', {
+      x: LEFT_INCH,
+      y: 6.80,
+      w: SAFE_W_INCH,
+      h: 0.30,
+      fontSize: 9.5,
+      color: muted,
       fontFace: font,
-      lineSpacing: 24,
+      fit: 'shrink',
     });
 
     // ==========================================
@@ -835,46 +1052,54 @@ export async function exportProjectToPptx(
 
     slide10.addShape(pres.ShapeType.rect, {
       x: 0,
-      y: 7.35,
-      w: 13.33,
-      h: 0.15,
+      y: 7.38,
+      w: SLIDE_W,
+      h: 0.12,
       fill: { color: primary },
       line: { color: primary },
     });
 
     slide10.addText('THANK YOU', {
-      x: 1.0,
-      y: 2.0,
-      w: 11.33,
-      h: 0.4,
+      x: LEFT_INCH,
+      y: 1.50,
+      w: SAFE_W_INCH,
+      h: 0.35,
       fontSize: 13,
       bold: true,
       color: accent,
       fontFace: font,
+      fit: 'shrink',
     });
+
+    const closeTitleSize = computeTitleFontSize(project.name, 40);
     slide10.addText(`${project.name}`, {
-      x: 1.0,
-      y: 2.5,
-      w: 11.33,
-      h: 1.2,
-      fontSize: 42,
+      x: LEFT_INCH,
+      y: 2.00,
+      w: SAFE_W_INCH,
+      h: 1.30,
+      fontSize: closeTitleSize,
       bold: true,
       color: text,
       fontFace: font,
+      wrap: true,
+      fit: 'shrink',
     });
+
     slide10.addText(
       `Ready to structure, accelerate, and launch.\n` +
       `Powered by NEXORA Business Design Studio • Professional Edition\n\n` +
       `Contact & Inquiry: founder@nexora.studio`,
       {
-        x: 1.0,
-        y: 4.0,
-        w: 11.33,
-        h: 2.2,
-        fontSize: 16,
+        x: LEFT_INCH,
+        y: 3.50,
+        w: SAFE_W_INCH,
+        h: 2.50,
+        fontSize: 15,
         color: muted,
         fontFace: font,
-        lineSpacing: 28,
+        lineSpacing: 24,
+        wrap: true,
+        fit: 'shrink',
       }
     );
 

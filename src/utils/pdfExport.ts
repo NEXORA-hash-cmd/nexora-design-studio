@@ -3,6 +3,15 @@ import { NexoraProject } from '../types/project';
 import { sanitizeFilename } from './pptxExport';
 import { getTheme } from '../data/themes';
 
+function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace('#', '');
+  const bigint = parseInt(clean, 16);
+  if (clean.length === 6 && !isNaN(bigint)) {
+    return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+  }
+  return [14, 165, 233];
+}
+
 export async function exportProjectToPdf(
   project: NexoraProject,
   onProgress?: (status: string) => void
@@ -16,6 +25,8 @@ export async function exportProjectToPdf(
     });
 
     const theme = getTheme(project.theme);
+    const [pR, pG, pB] = hexToRgb(theme.palette.primary);
+    const [aR, aG, aB] = hexToRgb(theme.palette.accent);
     const fin = project.financials;
     const price = fin.pricingPerUnit || 0;
     const cogs = fin.cogsPerUnit || 0;
@@ -33,7 +44,7 @@ export async function exportProjectToPdf(
 
     const drawHeader = (pageTitle: string, pageNum: number, totalPages: number) => {
       // Top accent bar
-      doc.setFillColor(14, 165, 233); // Sky-500
+      doc.setFillColor(pR, pG, pB);
       doc.rect(margin, 12, contentWidth, 1.5, 'F');
 
       doc.setFont('helvetica', 'bold');
@@ -58,13 +69,13 @@ export async function exportProjectToPdf(
     doc.setFillColor(15, 23, 42); // Slate-900
     doc.rect(margin, 25, contentWidth, 70, 'F');
 
-    doc.setFillColor(14, 165, 233);
+    doc.setFillColor(pR, pG, pB);
     doc.rect(margin, 25, 4, 70, 'F');
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(56, 189, 248); // Sky-400
-    doc.text(`THEME: ${theme.name.toUpperCase()}`, margin + 10, 38);
+    doc.setTextColor(aR, aG, aB);
+    doc.text(`THEME: ${theme.name.toUpperCase()} (${theme.category.toUpperCase()})`, margin + 10, 38);
 
     doc.setFontSize(24);
     doc.setTextColor(255, 255, 255);
@@ -150,7 +161,7 @@ export async function exportProjectToPdf(
       doc.text(st.label.toUpperCase(), xOffset + 4, yPos + 6);
 
       doc.setFontSize(13);
-      doc.setTextColor(14, 165, 233);
+      doc.setTextColor(pR, pG, pB);
       doc.text(st.val, xOffset + 4, yPos + 15);
     });
 
@@ -195,7 +206,7 @@ export async function exportProjectToPdf(
       doc.setDrawColor(226, 232, 240);
       doc.rect(xB, yB, boxW, boxH, 'FD');
 
-      doc.setFillColor(14, 165, 233);
+      doc.setFillColor(pR, pG, pB);
       doc.rect(xB, yB, boxW, 5, 'F');
 
       doc.setFont('helvetica', 'bold');
@@ -271,7 +282,7 @@ export async function exportProjectToPdf(
       doc.text(mc.label.toUpperCase(), xOffset + 4, yPos + 6);
 
       doc.setFontSize(16);
-      doc.setTextColor(14, 165, 233);
+      doc.setTextColor(pR, pG, pB);
       doc.text(mc.val, xOffset + 4, yPos + 15);
 
       doc.setFont('helvetica', 'normal');
@@ -347,7 +358,7 @@ export async function exportProjectToPdf(
       doc.text(splitStr, margin + 75, yPos + 5);
 
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(14, 165, 233);
+      doc.setTextColor(pR, pG, pB);
       const splitDiff = doc.splitTextToSize(c.differentiator, 56);
       doc.text(splitDiff, margin + 120, yPos + 5);
 
@@ -428,7 +439,7 @@ export async function exportProjectToPdf(
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(56, 189, 248);
+    doc.setTextColor(aR, aG, aB);
     doc.text('CAPITAL ALLOCATION & THE COMMERCIAL ASK', margin + 6, yPos + 8);
 
     doc.setFontSize(18);

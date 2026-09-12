@@ -112,6 +112,43 @@ export interface PitchDeck {
 
 export type ThemeId = 'executive' | 'modern' | 'minimal' | 'bold';
 
+export interface ThemeStructure {
+  layout: {
+    coverStyle: 'split-hero' | 'classic-centered' | 'minimal-editorial' | 'bold-impact';
+    contentLayout: 'card-grid' | 'structured-rows' | 'asymmetric-split' | 'high-contrast-blocks';
+    cardRadius: string;
+    cardBorderWidth: number;
+    spacing: 'compact' | 'balanced' | 'spacious';
+  };
+  shapes: {
+    accentGeometry: 'sharp' | 'curved' | 'pill' | 'chamfered';
+    dividerStyle: 'solid' | 'dashed' | 'gradient' | 'hairline';
+    decorations: boolean;
+  };
+  coverPage: {
+    alignment: 'left' | 'center' | 'right';
+    badgeStyle: string;
+    showMetaGrid: boolean;
+    heroBannerHeight: string;
+  };
+  contentPages: {
+    tableHeaderBg: string;
+    gridGap: string;
+    cardPadding: string;
+    sectionStyle: string;
+  };
+  closingPage: {
+    ctaStyle: 'hero-card' | 'minimalist-center' | 'executive-memo' | 'action-banner';
+    buttonColor: string;
+    buttonTextColor: string;
+    contactLayout: 'horizontal-bar' | 'two-column' | 'boxed-footer';
+  };
+  icons: {
+    strokeWidth: number;
+    containerShape: 'circle' | 'square' | 'rounded-lg' | 'none';
+  };
+}
+
 export interface ThemeConfig {
   id: ThemeId;
   name: string;
@@ -134,6 +171,7 @@ export interface ThemeConfig {
     headingWeight: string;
     styleClass: string;
   };
+  structure?: ThemeStructure;
   pptx: {
     bgColor: string;
     cardColor: string;
